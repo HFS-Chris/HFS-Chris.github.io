@@ -20,6 +20,7 @@
   .control-btn { padding: 8px 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin: 5px; }
   .download-btn { background-color: #28a745; color: white; }
   .reset-all-btn { background-color: #D70022; color: white; }
+  .email-btn { background-color: #007BFF; color: white; }
   .total-count { font-size: 18px; font-weight: bold; text-align: center; margin-top: 10px; }
 </style>
 </head>
@@ -36,6 +37,7 @@
 <div style="margin-top:15px; text-align:center;">
   <button class="control-btn download-btn" onclick="downloadCSV()">Download CSV</button>
   <button class="control-btn reset-all-btn" onclick="resetAll()">Reset All</button>
+  <button class="control-btn email-btn" onclick="emailCSV()">Email</button>
 </div>
 
 <div class="total-count" id="totalCount">Total Count: 0</div>
@@ -56,6 +58,7 @@ const assets = [
   {name: "Smoke Alarms", intervals:["6 Monthly","Annual"]},
   {name: "Fire Doors - Unit Doors", intervals:["6 Monthly","Annual"]},
   {name: "Fire Doors - Common Area", intervals:["6 Monthly","Annual"]},
+  {name: "Sliding Fire Door", intervals:["Annual"]},
   {name: "Annual Flow Test", intervals:["Annual"]},
   {name: "E Light Test Facility - Switchboards", intervals:["Annual"]},
   {name: "RCD Testing / Thermo Scanning", intervals:["Annual"]},
@@ -121,9 +124,6 @@ function render() {
     const countDisplay = document.createElement("input");
     countDisplay.className = "count";
     countDisplay.value = counts[asset.name];
-    countDisplay.style.fontSize = "28px";
-    countDisplay.style.textAlign = "center";
-    countDisplay.style.width = "60px";
     countDisplay.onfocus = () => { if(countDisplay.value === "0") countDisplay.value = ""; };
     countDisplay.onblur = () => { counts[asset.name] = parseInt(countDisplay.value) || 0; countDisplay.value = counts[asset.name]; updateTotal(); };
     countDisplay.onclick = (e) => e.stopPropagation();
@@ -213,6 +213,18 @@ function downloadCSV() {
   const safeDate = date.replace(/\s+/g, "_").replace(/\//g,"-");
   link.download = `${safeSiteName}_${safeDate}.csv`;
   link.click();
+}
+
+// Email button
+function emailCSV() {
+  const siteName = document.getElementById("siteName").value || "Site";
+  const date = document.getElementById("date").value || "Date";
+  const safeSiteName = siteName.replace(/\s+/g, "_");
+  const safeDate = date.replace(/\s+/g, "_").replace(/\//g,"-");
+  const filename = `${safeSiteName}_${safeDate}.csv`;
+
+  // This opens Outlook (or default mail client) with subject filled in
+  window.location.href = `mailto:?subject=${encodeURIComponent(filename)}&body=Please see attached file.`;
 }
 
 window.onload = () => {
