@@ -9,10 +9,11 @@
   h2 { text-align: center; }
   .top-inputs input { width: 100%; padding: 8px; margin-bottom: 5px; font-size: 16px; box-sizing: border-box; }
   .asset-item { background: #007BFF; color: white; margin-bottom: 10px; padding: 10px; border-radius: 10px; }
-  .countRow { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; flex-wrap: wrap; }
+  .countRow { display: flex; justify-content: flex-start; align-items: center; margin-top: 5px; flex-wrap: wrap; gap: 10px; }
   .reset-btn { background-color: #D70022; color: white; border: none; padding: 5px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; }
-  .scheduled-box { background-color: #FFD700; padding: 5px 10px; border-radius: 8px; font-weight: bold; cursor: pointer; text-align: center; flex: 1; margin: 0 5px; min-width: 100px; }
-  .count { font-size: 24px; font-weight: bold; min-width: 40px; text-align: center; }
+  .scheduled-box { background-color: #FFD700; padding: 5px 8px; border-radius: 8px; font-weight: bold; cursor: pointer; text-align: center; min-width: 80px; font-size: 14px; }
+  .count { font-size: 28px; font-weight: bold; width: 60px; text-align: center; }
+  .plus-btn { font-size: 18px; background-color: #28a745; color: white; border: none; border-radius: 6px; padding: 5px 8px; cursor: pointer; }
   .intervals { margin-top: 5px; padding-left: 10px; }
   .interval { display: flex; justify-content: space-between; margin: 2px 0; }
   .interval input { width: 40%; }
@@ -41,12 +42,12 @@
 
 <script>
 const assets = [
-  {name: "Sprinkler", intervals:["Monthly","6 Monthly","Annual","5/10 Yearly"]},
-  {name: "Fire Panel", intervals:["Monthly","Annual"]},
-  {name: "FIP - EWIS", intervals:["Monthly","Annual","5 Yearly"]},
-  {name: "Diesel Pumpset", intervals:["Monthly","6 Monthly","Annual","5/10 Yearly"]},
-  {name: "Electric Pumpset", intervals:["Monthly","6 Monthly","Annual","5/10 Yearly"]},
-  {name: "Water Storage Tanks", intervals:["Monthly","6 Monthly","Annual","5/10 Yearly"]},
+  {name: "Sprinkler", intervals:["Monthly","6 Monthly","Annual","5 Yearly"]},
+  {name: "FIP", intervals:["Monthly","Annual","5 Yearly"]},
+  {name: "FIP - EWIS", intervals:["Monthly","Annual","5 Yearly"]}, 
+  {name: "Diesel Pumpset", intervals:["Monthly","6 Monthly","Annual","5 Yearly"]},
+  {name: "Electric Pumpset", intervals:["Monthly","6 Monthly","Annual","5 Yearly"]},
+  {name: "Water Storage Tanks", intervals:["Monthly","6 Monthly","Annual","10 Yearly"]},
   {name: "Emergency & Exit Lights", intervals:["6 Monthly","Annual"]},
   {name: "Hydrants", intervals:["6 Monthly","Annual","5 Yearly"]},
   {name: "Fire Hose Reels", intervals:["6 Monthly","Annual"]},
@@ -117,11 +118,23 @@ function render() {
     countRow.appendChild(schedBox);
 
     // Count display
-    const countDisplay = document.createElement("div");
+    const countDisplay = document.createElement("input");
     countDisplay.className = "count";
-    countDisplay.textContent = counts[asset.name];
-    countDisplay.onclick = () => { counts[asset.name]++; render(); }; 
+    countDisplay.value = counts[asset.name];
+    countDisplay.style.fontSize = "28px";
+    countDisplay.style.textAlign = "center";
+    countDisplay.style.width = "60px";
+    countDisplay.onfocus = () => { if(countDisplay.value === "0") countDisplay.value = ""; };
+    countDisplay.onblur = () => { counts[asset.name] = parseInt(countDisplay.value) || 0; countDisplay.value = counts[asset.name]; updateTotal(); };
+    countDisplay.onclick = (e) => e.stopPropagation();
     countRow.appendChild(countDisplay);
+
+    // +1 button
+    const plusBtn = document.createElement("button");
+    plusBtn.className = "plus-btn";
+    plusBtn.textContent = "+1";
+    plusBtn.onclick = () => { counts[asset.name]++; countDisplay.value = counts[asset.name]; updateTotal(); };
+    countRow.appendChild(plusBtn);
 
     item.appendChild(countRow);
 
@@ -150,7 +163,12 @@ function render() {
   document.getElementById("totalCount").textContent = `Total Count: ${total}`;
 }
 
-// Reset All
+function updateTotal() {
+    let total = 0;
+    assets.forEach(a => total += counts[a.name]);
+    document.getElementById("totalCount").textContent = `Total Count: ${total}`;
+}
+
 function resetAll() {
   if (!resetAllConfirm) { 
     resetAllConfirm = true; 
@@ -162,25 +180,41 @@ function resetAll() {
   render();
 }
 
-// Download CSV
+// Download CSV with formatted month
 function downloadCSV() {
-  let csv = "Asset,Count";
+  let csv = `Site Name,${document.getElementById("siteName").value || ""}\n`;
+  csv += `Date,${document.getElementById("date").value || ""}\n`;
+  csv += "Asset,Count,Monthly,6 Monthly,Annual,5 Yearly,10 Yearly\n";
+
   assets.forEach(a => {
-    csv += `\n${a.name},${counts[a.name]}`;
-    a.intervals.forEach(interval => {
-      const val = document.getElementById(`${a.name}_${interval}`)?.value || "";
-      csv += `,${interval}:${val}`;
+    let row = `"${a.name}",${counts[a.name] || 0}`;
+    const schedules = ["Monthly","6 Monthly","Annual","5 Yearly","10 Yearly"];
+    schedules.forEach(s => {
+      const val = document.getElementById(`${a.name}_${s}`)?.value || "";
+      let formattedVal = "";
+      if (val) {
+        const [year, month] = val.split("-");
+        const monthName = new Date(year, month-1).toLocaleString('en-US', { month: 'short' });
+        formattedVal = `${monthName}-${year}`;
+      }
+      row += `,${formattedVal}`;
     });
+    csv += row + "\n";
   });
+
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "asset_tally.csv";
+
+  const siteName = document.getElementById("siteName").value || "Site";
+  const date = document.getElementById("date").value || "Date";
+  const safeSiteName = siteName.replace(/\s+/g, "_");
+  const safeDate = date.replace(/\s+/g, "_").replace(/\//g,"-");
+  link.download = `${safeSiteName}_${safeDate}.csv`;
   link.click();
 }
 
-// Set default date to today
 window.onload = () => {
   const today = new Date();
   const dd = String(today.getDate()).padStart(2,'0');
