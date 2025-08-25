@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asset Tally</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 10px; background: #f4f4f4; }
+  h2 { text-align: center; }
+  .top-inputs input { width: 100%; padding: 8px; margin-bottom: 5px; font-size: 16px; box-sizing: border-box; }
+  .asset-item { background: #007BFF; color: white; margin-bottom: 10px; padding: 10px; border-radius: 10px; }
+  .countRow { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; flex-wrap: wrap; }
+  .reset-btn { background-color: #D70022; color: white; border: none; padding: 5px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; }
+  .scheduled-box { background-color: #FFD700; padding: 5px 10px; border-radius: 8px; font-weight: bold; cursor: pointer; text-align: center; flex: 1; margin: 0 5px; min-width: 100px; }
+  .count { font-size: 24px; font-weight: bold; min-width: 40px; text-align: center; }
+  .intervals { margin-top: 5px; padding-left: 10px; }
+  .interval { display: flex; justify-content: space-between; margin: 2px 0; }
+  .interval input { width: 40%; }
+  .control-btn { padding: 8px 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin: 5px; }
+  .download-btn { background-color: #28a745; color: white; }
+  .reset-all-btn { background-color: #D70022; color: white; }
+  .total-count { font-size: 18px; font-weight: bold; text-align: center; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<h2>Asset Tally</h2>
+<div class="top-inputs">
+  <input type="text" id="siteName" placeholder="Site Name / Address">
+  <input type="text" id="date">
+</div>
+
+<div id="assetContainer"></div>
+
+<div style="margin-top:15px; text-align:center;">
+  <button class="control-btn download-btn" onclick="downloadCSV()">Download CSV</button>
+  <button class="control-btn reset-all-btn" onclick="resetAll()">Reset All</button>
+</div>
+
+<div class="total-count" id="totalCount">Total Count: 0</div>
+
+<script>
+const assets = [
+  {name: "Sprinkler", intervals:["Monthly","6 Monthly","Annual","5/10 Yearly"]},
+  {name: "Fire Panel", intervals:["Monthly","Annual"]},
+  {name: "FIP - EWIS", intervals:["Monthly","Annual","5 Yearly"]},
+  {name: "Diesel Pumpset", intervals:["Monthly","6 Monthly","Annual","5/10 Yearly"]},
+  {name: "Electric Pumpset", intervals:["Monthly","6 Monthly","Annual","5/10 Yearly"]},
+  {name: "Water Storage Tanks", intervals:["Monthly","6 Monthly","Annual","5/10 Yearly"]},
+  {name: "Emergency & Exit Lights", intervals:["6 Monthly","Annual"]},
+  {name: "Hydrants", intervals:["6 Monthly","Annual","5 Yearly"]},
+  {name: "Fire Hose Reels", intervals:["6 Monthly","Annual"]},
+  {name: "Extinguishers", intervals:["6 Monthly","Annual"]},
+  {name: "Blankets", intervals:["6 Monthly","Annual"]},
+  {name: "Smoke Alarms", intervals:["6 Monthly","Annual"]},
+  {name: "Fire Doors - Unit Doors", intervals:["6 Monthly","Annual"]},
+  {name: "Fire Doors - Common Area", intervals:["6 Monthly","Annual"]},
+  {name: "Annual Flow Test", intervals:["Annual"]},
+  {name: "E Light Test Facility - Switchboards", intervals:["Annual"]},
+  {name: "RCD Testing / Thermo Scanning", intervals:["Annual"]},
+  {name: "Warden Training - FSA", intervals:["Annual"]},
+  {name: "Compliance Inspection", intervals:["Annual"]},
+  {name: "ERP/FEP Review", intervals:["Annual"]},
+  {name: "Evac Drill", intervals:["Annual"]},
+  {name: "Evac Diagrams - Update/Replace", intervals:["Annual"]},
+  {name: "Mechanical Fan Testing", intervals:["Annual"]},
+  {name: "Co2 Calibration", intervals:["Annual"]},
+  {name: "Stairwell Pressurisation", intervals:["Annual"]}
+];
+
+let counts = {};
+let toggleState = {};
+let resetConfirm = {};
+let resetAllConfirm = false;
+
+function render() {
+  const container = document.getElementById("assetContainer");
+  container.innerHTML = "";
+  let total = 0;
+  
+  assets.forEach(asset => {
+    counts[asset.name] = counts[asset.name] || 0;
+    toggleState[asset.name] = toggleState[asset.name] || false;
+    resetConfirm[asset.name] = resetConfirm[asset.name] || false;
+
+    total += counts[asset.name];
+
+    const item = document.createElement("div");
+    item.className = "asset-item";
+    
+    const title = document.createElement("div");
+    title.textContent = asset.name;
+    title.style.fontWeight = "bold";
+    title.style.fontSize = "18px";
+    item.appendChild(title);
+
+    const countRow = document.createElement("div");
+    countRow.className = "countRow";
+
+    // Reset button
+    const resetBtn = document.createElement("button");
+    resetBtn.className = "reset-btn";
+    resetBtn.textContent = "Reset";
+    resetBtn.onclick = () => {
+      if (!resetConfirm[asset.name]) { resetConfirm[asset.name] = true; resetBtn.textContent = "Confirm?"; return; }
+      resetConfirm[asset.name] = false;
+      counts[asset.name] = 0;
+      render();
+    };
+    countRow.appendChild(resetBtn);
+
+    // Scheduled toggle
+    const schedBox = document.createElement("div");
+    schedBox.className = "scheduled-box";
+    schedBox.textContent = toggleState[asset.name] ? "Scheduled ▲" : "Scheduled ▼";
+    schedBox.onclick = () => { toggleState[asset.name] = !toggleState[asset.name]; render(); };
+    countRow.appendChild(schedBox);
+
+    // Count display
+    const countDisplay = document.createElement("div");
+    countDisplay.className = "count";
+    countDisplay.textContent = counts[asset.name];
+    countDisplay.onclick = () => { counts[asset.name]++; render(); }; 
+    countRow.appendChild(countDisplay);
+
+    item.appendChild(countRow);
+
+    // Interval pickers
+    const intervalsDiv = document.createElement("div");
+    intervalsDiv.className = "intervals";
+    intervalsDiv.style.display = toggleState[asset.name] ? "block" : "none";
+    
+    asset.intervals.forEach(interval => {
+      const intRow = document.createElement("div");
+      intRow.className = "interval";
+      const label = document.createElement("span");
+      label.textContent = interval;
+      const picker = document.createElement("input");
+      picker.type = "month";
+      picker.id = `${asset.name}_${interval}`;
+      intRow.appendChild(label);
+      intRow.appendChild(picker);
+      intervalsDiv.appendChild(intRow);
+    });
+    
+    item.appendChild(intervalsDiv);
+    container.appendChild(item);
+  });
+
+  document.getElementById("totalCount").textContent = `Total Count: ${total}`;
+}
+
+// Reset All
+function resetAll() {
+  if (!resetAllConfirm) { 
+    resetAllConfirm = true; 
+    alert("Press Reset All again to confirm"); 
+    return; 
+  }
+  resetAllConfirm = false;
+  assets.forEach(a => counts[a.name] = 0);
+  render();
+}
+
+// Download CSV
+function downloadCSV() {
+  let csv = "Asset,Count";
+  assets.forEach(a => {
+    csv += `\n${a.name},${counts[a.name]}`;
+    a.intervals.forEach(interval => {
+      const val = document.getElementById(`${a.name}_${interval}`)?.value || "";
+      csv += `,${interval}:${val}`;
+    });
+  });
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "asset_tally.csv";
+  link.click();
+}
+
+// Set default date to today
+window.onload = () => {
+  const today = new Date();
+  const dd = String(today.getDate()).padStart(2,'0');
+  const mm = String(today.getMonth()+1).padStart(2,'0');
+  const yyyy = today.getFullYear();
+  document.getElementById("date").value = `${dd}/${mm}/${yyyy}`;
+  render();
+}
+</script>
+
+</body>
+</html>
