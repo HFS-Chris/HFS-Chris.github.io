@@ -10,8 +10,8 @@
   .top-inputs input { width: 100%; padding: 8px; margin-bottom: 5px; font-size: 16px; box-sizing: border-box; }
   .asset-item { background: #007BFF; color: white; margin-bottom: 10px; padding: 10px; border-radius: 10px; }
   .countRow { display: flex; justify-content: flex-start; align-items: center; margin-top: 5px; flex-wrap: wrap; gap: 10px; }
-  .reset-btn { background-color: #D70022; color: white; border: none; padding: 5px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; }
-  .scheduled-box { background-color: #FFD700; padding: 5px 8px; border-radius: 8px; font-weight: bold; cursor: pointer; text-align: center; min-width: 80px; font-size: 14px; }
+  .reset-btn { background-color: #D70022; color: white; font-weight: bold; border: none; padding: 5px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; }
+  .scheduled-box { background-color: #FFD700; padding: 5px 8px; color: black; border-radius: 8px; font-weight: bold; cursor: pointer; text-align: center; min-width: 80px; font-size: 14px; }
   .count { font-size: 28px; font-weight: bold; width: 60px; text-align: center; }
   .plus-btn { font-size: 18px; background-color: #28a745; color: white; border: none; border-radius: 6px; padding: 5px 8px; cursor: pointer; }
   .intervals { margin-top: 5px; padding-left: 10px; }
@@ -20,7 +20,7 @@
   .control-btn { padding: 8px 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin: 5px; }
   .download-btn { background-color: #28a745; color: white; }
   .reset-all-btn { background-color: #D70022; color: white; }
-  .email-btn { background-color: #007BFF; color: white; }
+  .email-btn { background-color: #FFD700; color: black; }
   .total-count { font-size: 18px; font-weight: bold; text-align: center; margin-top: 10px; }
 </style>
 </head>
@@ -36,7 +36,7 @@
 
 <div style="margin-top:15px; text-align:center;">
   <button class="control-btn download-btn" onclick="downloadCSV()">Download CSV</button>
-  <button class="control-btn reset-all-btn" onclick="resetAll()">Reset All</button>
+  <button class="control-btn reset-all-btn" id="resetAllBtn">Reset All</button>
   <button class="control-btn email-btn" onclick="emailCSV()">Email</button>
 </div>
 
@@ -51,7 +51,7 @@ const assets = [
   {name: "Electric Pumpset", intervals:["Monthly","6 Monthly","Annual","5 Yearly"]},
   {name: "Water Storage Tanks", intervals:["Monthly","6 Monthly","Annual","10 Yearly"]},
   {name: "Emergency & Exit Lights", intervals:["6 Monthly","Annual"]},
-  {name: "Hydrants", intervals:["6 Monthly","Annual","5 Yearly"]},
+  {name: "Hydrants", intervals:["6 Monthly","Annual"]},
   {name: "Fire Hose Reels", intervals:["6 Monthly","Annual"]},
   {name: "Extinguishers", intervals:["6 Monthly","Annual"]},
   {name: "Blankets", intervals:["6 Monthly","Annual"]},
@@ -69,7 +69,7 @@ const assets = [
   {name: "Evac Diagrams - Update/Replace", intervals:["Annual"]},
   {name: "Mechanical Fan Testing", intervals:["Annual"]},
   {name: "Co2 Calibration", intervals:["Annual"]},
-  {name: "Stairwell Pressurisation", intervals:["Annual"]}
+  {name: "Stairwell Pressurisation", intervals:["Annual"]},
 ];
 
 let counts = {};
@@ -105,8 +105,14 @@ function render() {
     const resetBtn = document.createElement("button");
     resetBtn.className = "reset-btn";
     resetBtn.textContent = "Reset";
-    resetBtn.onclick = () => {
-      if (!resetConfirm[asset.name]) { resetConfirm[asset.name] = true; resetBtn.textContent = "Confirm?"; return; }
+    resetBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (!resetConfirm[asset.name]) {
+        resetConfirm[asset.name] = true; 
+        resetBtn.textContent = "Confirm?";
+        document.addEventListener("click", clickOutsideReset);
+        return;
+      }
       resetConfirm[asset.name] = false;
       counts[asset.name] = 0;
       render();
@@ -124,6 +130,9 @@ function render() {
     const countDisplay = document.createElement("input");
     countDisplay.className = "count";
     countDisplay.value = counts[asset.name];
+    countDisplay.style.fontSize = "28px";
+    countDisplay.style.textAlign = "center";
+    countDisplay.style.width = "60px";
     countDisplay.onfocus = () => { if(countDisplay.value === "0") countDisplay.value = ""; };
     countDisplay.onblur = () => { counts[asset.name] = parseInt(countDisplay.value) || 0; countDisplay.value = counts[asset.name]; updateTotal(); };
     countDisplay.onclick = (e) => e.stopPropagation();
@@ -163,24 +172,36 @@ function render() {
   document.getElementById("totalCount").textContent = `Total Count: ${total}`;
 }
 
+function clickOutsideReset(e) {
+  Object.keys(resetConfirm).forEach(key => resetConfirm[key] = false);
+  resetAllConfirm = false;
+  document.getElementById("resetAllBtn").textContent = "Reset All";
+  render();
+  document.removeEventListener("click", clickOutsideReset);
+}
+
 function updateTotal() {
     let total = 0;
     assets.forEach(a => total += counts[a.name]);
     document.getElementById("totalCount").textContent = `Total Count: ${total}`;
 }
 
-function resetAll() {
-  if (!resetAllConfirm) { 
-    resetAllConfirm = true; 
-    alert("Press Reset All again to confirm"); 
-    return; 
+// Individual resetAll button with click-outside confirmation
+const resetAllBtn = document.getElementById("resetAllBtn");
+resetAllBtn.onclick = (e) => {
+  e.stopPropagation();
+  if (!resetAllConfirm) {
+    resetAllConfirm = true;
+    resetAllBtn.textContent = "Confirm?";
+    document.addEventListener("click", clickOutsideReset);
+    return;
   }
   resetAllConfirm = false;
   assets.forEach(a => counts[a.name] = 0);
   render();
-}
+};
 
-// Download CSV with formatted month
+// Download CSV
 function downloadCSV() {
   let csv = `Site Name,${document.getElementById("siteName").value || ""}\n`;
   csv += `Date,${document.getElementById("date").value || ""}\n`;
@@ -215,16 +236,14 @@ function downloadCSV() {
   link.click();
 }
 
-// Email button
+// Email CSV
 function emailCSV() {
   const siteName = document.getElementById("siteName").value || "Site";
   const date = document.getElementById("date").value || "Date";
   const safeSiteName = siteName.replace(/\s+/g, "_");
   const safeDate = date.replace(/\s+/g, "_").replace(/\//g,"-");
-  const filename = `${safeSiteName}_${safeDate}.csv`;
-
-  // This opens Outlook (or default mail client) with subject filled in
-  window.location.href = `mailto:?subject=${encodeURIComponent(filename)}&body=Please see attached file.`;
+  const subject = encodeURIComponent(`${safeSiteName}_${safeDate}`);
+  window.location.href = `mailto:?subject=${subject}`;
 }
 
 window.onload = () => {
