@@ -66,10 +66,8 @@
 
 <script>
 const assets = [
-  {name: "Sprinkler", intervals:["Monthly","6 Monthly","Annual","5 Yearly","10 Yearly","25 Yearly"]},
-  {name: "Sprinkler - Flow Switches", intervals: []},
   {name: "FIP", intervals:["Monthly","Annual","5 Yearly"]},
-  {name: "FIP - No. Zones"},
+  {name: "FIP - No. Zones", intervals: []},
   {name: "FIP - No. Smoke Detectors Common Area", intervals: []},
   {name: "FIP - No. Smoke Detectors In units", intervals: []},
   {name: "FIP - No. Heat Detectors Common Area", intervals: []},
@@ -80,10 +78,13 @@ const assets = [
   {name: "FIP - EWIS", intervals:["Monthly","Annual","5 Yearly"]}, 
   {name: "Diesel Pumpset", intervals:["Monthly","6 Monthly","Annual","5 Yearly"]},
   {name: "Electric Pumpset", intervals:["Monthly","6 Monthly","Annual","5 Yearly"]},
+  {name: "Sprinkler", intervals:["Monthly","6 Monthly","Annual","5 Yearly","10 Yearly","25 Yearly"]},
+  {name: "Sprinkler - Flow Switches", intervals: []},
   {name: "Water Storage Tanks", intervals:["Monthly","6 Monthly","Annual","10 Yearly"]},
   {name: "Emergency & Exit Lights", intervals:["6 Monthly","Annual"]},
-  {name: "E Light Switch Boards", intervals: []},
+  {name: "E Light Test Facility - Switchboards", intervals:["Annual"]},
   {name: "Hydrants", intervals:["6 Monthly","Annual"]},
+  {name: "Annual Flow Test", intervals:["Annual"]},
   {name: "Fire Hose Reels", intervals:["6 Monthly","Annual"]},
   {name: "Extinguishers", intervals:["6 Monthly","Annual"]},
   {name: "Blankets", intervals:["6 Monthly"]},
@@ -91,8 +92,6 @@ const assets = [
   {name: "Fire Doors - Unit Doors", intervals:["6 Monthly","Annual"]},
   {name: "Fire Doors - Common Area", intervals:["6 Monthly","Annual"]},
   {name: "Sliding Fire Door", intervals:["Annual"]},
-  {name: "Annual Flow Test", intervals:["Annual"]},
-  {name: "E Light Test Facility - Switchboards", intervals:["Annual"]},
   {name: "RCD Testing", intervals:["Annual"]},
   {name: "Thermo Scanning", intervals:["Annual"]},
   {name: "Warden Training - FSA", intervals:["Annual"]},
@@ -291,6 +290,7 @@ window.onload = () => {
 
 </body>
 </html>
+
 
 
 
