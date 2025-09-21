@@ -38,6 +38,7 @@
 <div style="margin-top:20px; padding:10px; background:#fff; border-radius:10px;">
   <h3 style="margin-bottom:10px;">Site Photos / Documentation</h3>
   
+  <label><input type="checkbox"> Essential Services Cabinet</label><br>
   <label><input type="checkbox"> Switch Boards</label><br>
   <label><input type="checkbox"> FIP / EWIS</label><br>
   <label><input type="checkbox"> Inside FIP / EWIS</label><br>
@@ -51,9 +52,9 @@
   <label><input type="checkbox"> EVAC Diagrams</label><br>
   <label><input type="checkbox"> HVAC Switchboard</label><br>
   <label><input type="checkbox"> Lockbox Location</label><br>
-  <label><input type="checkbox"> Service Dates</label>
-  <label><input type="checkbox"> 5 / 10 / 25 Yearly Dates?</label>
-  <label><input type="checkbox"> Anything else notable?</label>
+  <label><input type="checkbox"> Service Dates</label><br>
+  <label><input type="checkbox"> 5 / 10 / 25 Yearly Dates?</label><br>
+  <label><input type="checkbox"> Anything else notable?</label><br>
 </div>
 
 <div style="margin-top:15px; text-align:center;">
@@ -68,11 +69,11 @@
 const assets = [
   {name: "FIP", intervals:["Monthly","Annual","5 Yearly"]},
   {name: "FIP - No. Zones", intervals: []},
-  {name: "FIP - No. Smoke Detectors Common Area", intervals: []},
+  {name: "FIP - No. Smoke Detectors Common", intervals: []},
   {name: "FIP - No. Smoke Detectors In units", intervals: []},
-  {name: "FIP - No. Heat Detectors Common Area", intervals: []},
+  {name: "FIP - No. Heat Detectors Common", intervals: []},
   {name: "FIP - No. Heat Detectors In Units", intervals: []},
-  {name: "FIP - No. Speakers Common Area", intervals: []},
+  {name: "FIP - No. Speakers Common", intervals: []},
   {name: "FIP - No. Speakers In Units", intervals: []},
   {name: "FIP - No. MCPs", intervals: []},
   {name: "FIP - EWIS", intervals:["Monthly","Annual","5 Yearly"]}, 
@@ -102,6 +103,7 @@ const assets = [
   {name: "Mechanical Fan Testing", intervals:["Annual"]},
   {name: "Co2 Calibration", intervals:["Annual"]},
   {name: "Stairwell Pressurisation", intervals:["Annual"]},
+  {name: "Install Essential Services Cabinet?", intervals:["Annual"]},
 ];
 
 let counts = {};
@@ -290,6 +292,7 @@ window.onload = () => {
 
 </body>
 </html>
+
 
 
 
