@@ -16,12 +16,27 @@
   .plus-btn { font-size: 18px; background-color: #28a745; color: white; border: none; border-radius: 6px; padding: 5px 8px; cursor: pointer; }
   .intervals { margin-top: 5px; padding-left: 10px; }
   .interval { display: flex; justify-content: space-between; margin: 2px 0; }
-  .interval input { width: 40%; }
+  .interval input { width: 80px; }
   .control-btn { padding: 8px 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin: 5px; }
   .download-btn { background-color: #28a745; color: white; }
   .reset-all-btn { background-color: #D70022; color: white; }
-  .email-btn { background-color: #FFD700; color: black; }
   .total-count { font-size: 18px; font-weight: bold; text-align: center; margin-top: 10px; }
+  .annual-flow { margin-top:5px; }
+  .annual-flow label { display:block; margin-top:3px; }
+  .annual-flow .note { 
+    display: inline-block;
+    margin-top:5px; 
+    background-color: #FFD700; 
+    color: black; 
+    font-weight: bold;
+    font-size: 13px; 
+    padding: 5px 8px; 
+    border-radius: 8px;
+  }
+  .annual-flow h3 { margin: 5px 0; font-size: 16px; }
+  #smallSiteFee { text-align:center; font-weight:bold; margin-top:5px; }
+  .checklist { margin-top:20px; padding:10px; background:#fff; border-radius:10px; }
+  .checklist h3 { margin-bottom:10px; font-size:16px; }
 </style>
 </head>
 <body>
@@ -34,10 +49,8 @@
 
 <div id="assetContainer"></div>
 
-<!-- Checklist Section -->
-<div style="margin-top:20px; padding:10px; background:#fff; border-radius:10px;">
-  <h3 style="margin-bottom:10px;">Site Photos / Documentation / Final Checks</h3>
-  
+<div class="checklist" id="checklistDiv">
+  <h3>Site Photos / Documentation / Final Checks</h3>
   <label><input type="checkbox"> Essential Services Cabinet</label><br>
   <label><input type="checkbox"> Switch Boards</label><br>
   <label><input type="checkbox"> FIP / EWIS</label><br>
@@ -54,17 +67,16 @@
   <label><input type="checkbox"> Lockbox Location</label><br>
   <label><input type="checkbox"> Service Dates</label><br>
   <label><input type="checkbox"> 5 / 10 / 25 Yearly Dates</label><br>
-  <label><input type="checkbox"> Anything else notable</label><br>
+  <label><input type="checkbox"> Anything else notable</label>
 </div>
 
 <div style="margin-top:15px; text-align:center;">
   <button class="control-btn download-btn" onclick="downloadCSV()">Download CSV</button>
   <button class="control-btn reset-all-btn" id="resetAllBtn">Reset All</button>
-  <button class="control-btn email-btn" onclick="emailCSV()">Email</button>
 </div>
 
 <div class="total-count" id="totalCount">Total Count: 0</div>
-<div class="total-count" id="smallSiteFee">Small Site Fee: No</div>
+<div id="smallSiteFee">Small Site Fee: No</div>
 
 <script>
 const assets = [
@@ -84,7 +96,6 @@ const assets = [
   {name: "Sprinkler - Flow Switches", intervals: []},
   {name: "Water Storage Tanks", intervals:["Monthly","6 Monthly","Annual","10 Yearly"]},
   {name: "Hydrants", intervals:["6 Monthly","Annual"]},
-  {name: "Annual Flow Test", intervals:["Annual"]},
   {name: "Fire Hose Reels", intervals:["6 Monthly","Annual"]},
   {name: "Emergency & Exit Lights", intervals:["6 Monthly","Annual"]},
   {name: "E Light Test Facility - Switchboards", intervals:["Annual"]},
@@ -104,7 +115,7 @@ const assets = [
   {name: "Mechanical Fan Testing", intervals:["Annual"]},
   {name: "Co2 Calibration", intervals:["Annual"]},
   {name: "Stairwell Pressurisation", intervals:["Annual"]},
-  {name: "Install Essential Services Cabinet?", intervals: []},
+  {name: "Install Essential Services Cavinet", intervals:[]},
 ];
 
 let counts = {};
@@ -112,21 +123,30 @@ let toggleState = {};
 let resetConfirm = {};
 let resetAllConfirm = false;
 
+const flowTestHTML = `
+<div class="annual-flow">
+  <h3>Annual Flow Test</h3>
+  <label><input type="checkbox" name="flowTest" value="Basic Internal"> Basic Internal</label>
+  <label><input type="checkbox" name="flowTest" value="Basic External"> Basic External</label>
+  <label><input type="checkbox" name="flowTest" value="Complex"> Complex*</label>
+  <span class="note">
+    *Over 10 stories, combined sprinkler/pump system, multiple pressure zones. Needs review by sprinkler fitter prior to emailing quote.
+  </span>
+</div>
+`;
+
 function render() {
   const container = document.getElementById("assetContainer");
   container.innerHTML = "";
-  let total = 0;
-  
+
   assets.forEach(asset => {
     counts[asset.name] = counts[asset.name] || 0;
     toggleState[asset.name] = toggleState[asset.name] || false;
     resetConfirm[asset.name] = resetConfirm[asset.name] || false;
 
-    total += counts[asset.name];
-
     const item = document.createElement("div");
     item.className = "asset-item";
-    
+
     const title = document.createElement("div");
     title.textContent = asset.name;
     title.style.fontWeight = "bold";
@@ -136,183 +156,196 @@ function render() {
     const countRow = document.createElement("div");
     countRow.className = "countRow";
 
-    // Reset button
     const resetBtn = document.createElement("button");
     resetBtn.className = "reset-btn";
     resetBtn.textContent = "Reset";
     resetBtn.onclick = (e) => {
       e.stopPropagation();
-      if (!resetConfirm[asset.name]) {
-        resetConfirm[asset.name] = true; 
-        resetBtn.textContent = "Confirm?";
-        document.addEventListener("click", clickOutsideReset);
-        return;
+      if (!resetConfirm[asset.name]) { 
+        resetConfirm[asset.name]=true; 
+        resetBtn.textContent="Confirm?"; 
+        document.addEventListener("click", clickOutsideReset); 
+        return; 
       }
-      resetConfirm[asset.name] = false;
-      counts[asset.name] = 0;
+      resetConfirm[asset.name]=false; 
+      counts[asset.name]=0; 
+      updateTotal(); 
       render();
     };
     countRow.appendChild(resetBtn);
 
-    // Scheduled toggle
     const schedBox = document.createElement("div");
     schedBox.className = "scheduled-box";
     schedBox.textContent = toggleState[asset.name] ? "Scheduled ▲" : "Scheduled ▼";
-    schedBox.onclick = () => { toggleState[asset.name] = !toggleState[asset.name]; render(); };
+    schedBox.onclick = (e) => { e.stopPropagation(); toggleState[asset.name] = !toggleState[asset.name]; render(); };
     countRow.appendChild(schedBox);
 
-    // Count display
     const countDisplay = document.createElement("input");
     countDisplay.className = "count";
     countDisplay.value = counts[asset.name];
     countDisplay.style.fontSize = "28px";
     countDisplay.style.textAlign = "center";
     countDisplay.style.width = "60px";
-    countDisplay.onfocus = () => { if(countDisplay.value === "0") countDisplay.value = ""; };
-    countDisplay.onblur = () => { counts[asset.name] = parseInt(countDisplay.value) || 0; countDisplay.value = counts[asset.name]; updateTotal(); };
-    countDisplay.onclick = (e) => e.stopPropagation();
+    countDisplay.onfocus = () => { if(countDisplay.value==="0") countDisplay.value=""; };
+    countDisplay.onblur = () => { counts[asset.name]=parseInt(countDisplay.value)||0; countDisplay.value=counts[asset.name]; updateTotal(); };
+    countDisplay.onclick = (e)=>e.stopPropagation();
     countRow.appendChild(countDisplay);
 
-    // +1 button
     const plusBtn = document.createElement("button");
     plusBtn.className = "plus-btn";
     plusBtn.textContent = "+1";
-    plusBtn.onclick = () => { counts[asset.name]++; countDisplay.value = counts[asset.name]; updateTotal(); };
+    plusBtn.onclick = () => { counts[asset.name]++; countDisplay.value=counts[asset.name]; updateTotal(); };
     countRow.appendChild(plusBtn);
 
     item.appendChild(countRow);
 
-    // Interval pickers
-    const intervalsDiv = document.createElement("div");
-    intervalsDiv.className = "intervals";
-    intervalsDiv.style.display = toggleState[asset.name] ? "block" : "none";
-    
-    asset.intervals.forEach(interval => {
-      const intRow = document.createElement("div");
-      intRow.className = "interval";
-      const label = document.createElement("span");
-      label.textContent = interval;
-      const picker = document.createElement("input");
-      picker.type = "month";
-      picker.id = `${asset.name}_${interval}`;
-      intRow.appendChild(label);
-      intRow.appendChild(picker);
-      intervalsDiv.appendChild(intRow);
-    });
-    
-    item.appendChild(intervalsDiv);
+    if(asset.intervals.length>0 && toggleState[asset.name]){
+      const intervalsDiv=document.createElement("div");
+      intervalsDiv.className="intervals";
+      asset.intervals.forEach(intv=>{
+        const intDiv=document.createElement("div");
+        intDiv.className="interval";
+        intDiv.innerHTML=`${intv}: <input type="month" id="${asset.name}_${intv}">`;
+        intervalsDiv.appendChild(intDiv);
+      });
+      item.appendChild(intervalsDiv);
+    }
+
     container.appendChild(item);
   });
+
+  // Insert Flow Test below Hydrants
+  const hydrantIndex=Array.from(container.children).findIndex(div=>div.textContent.includes("Hydrants"));
+  if(hydrantIndex!==-1){
+    const flowDivWrapper=document.createElement("div");
+    flowDivWrapper.className="asset-item";
+    flowDivWrapper.innerHTML=flowTestHTML;
+    container.insertBefore(flowDivWrapper, container.children[hydrantIndex+1]);
+  }
 
   updateTotal();
 }
 
-function clickOutsideReset(e) {
-  Object.keys(resetConfirm).forEach(key => resetConfirm[key] = false);
-  resetAllConfirm = false;
-  document.getElementById("resetAllBtn").textContent = "Reset All";
-  render();
+function clickOutsideReset(e){
+  Object.keys(resetConfirm).forEach(k=>resetConfirm[k]=false);
+  resetAllConfirm=false;
+  document.getElementById("resetAllBtn").textContent="Reset All";
   document.removeEventListener("click", clickOutsideReset);
+  render();
 }
 
-function updateTotal() {
-  let total = 0;
-  assets.forEach(a => total += counts[a.name]);
-  document.getElementById("totalCount").textContent = `Total Count: ${total}`;
-
-  // --- Small Site Fee Logic ---
-  const keys = [
+function updateTotal(){
+  const smallSiteAssets = [
     "Emergency & Exit Lights",
-    "Extinguishers",
     "Blankets",
-    "Hydrants",
+    "Extinguishers",
     "Fire Hose Reels",
+    "Hydrants",
     "Smoke & Heat Alarms"
   ];
+  const totalCountAssets = [
+    ...smallSiteAssets,
+    "Fire Doors - Unit Doors",
+    "Fire Doors - Common Area"
+  ];
 
-  let sum = 0;
-  keys.forEach(k => sum += counts[k] || 0);
+  let total=0;
+  totalCountAssets.forEach(aName=>{ total+=counts[aName]||0; });
+  document.getElementById("totalCount").textContent=`Total Count: ${total}`;
 
-  const feeBox = document.getElementById("smallSiteFee");
-  if (sum <= 59) {
-    feeBox.textContent = "Small Site Fee: Yes";
-    feeBox.style.color = "red";
-  } else {
-    feeBox.textContent = "Small Site Fee: No";
-    feeBox.style.color = "green";
-  }
+  const smallSiteTotal = smallSiteAssets.reduce((sum,name)=>sum+(counts[name]||0),0);
+  document.getElementById("smallSiteFee").textContent=(smallSiteTotal<=59?"Small Site Fee: Yes":"Small Site Fee: No");
 }
 
-// Individual resetAll button with click-outside confirmation
-const resetAllBtn = document.getElementById("resetAllBtn");
-resetAllBtn.onclick = (e) => {
+document.getElementById("resetAllBtn").onclick=(e)=>{
   e.stopPropagation();
-  if (!resetAllConfirm) {
-    resetAllConfirm = true;
-    resetAllBtn.textContent = "Confirm?";
-    document.addEventListener("click", clickOutsideReset);
-    return;
+  const btn=document.getElementById("resetAllBtn");
+
+  if(!resetAllConfirm){
+    resetAllConfirm=true;
+    btn.textContent="Confirm?";
+  } else {
+    resetAllConfirm=false;
+    Object.keys(counts).forEach(k=>counts[k]=0);
+    Object.keys(toggleState).forEach(k=>toggleState[k]=false);
+    btn.textContent="Reset All";
+    render();
   }
-  resetAllConfirm = false;
-  assets.forEach(a => counts[a.name] = 0);
-  render();
 };
 
-// Download CSV
-function downloadCSV() {
-  let csv = `Site Name,${document.getElementById("siteName").value || ""}\n`;
-  csv += `Date,${document.getElementById("date").value || ""}\n`;
-  csv += `Small Site Fee,${document.getElementById("smallSiteFee").textContent.replace("Small Site Fee: ","")}\n`;
-  csv += "Asset,Count,Monthly,6 Monthly,Annual,5 Yearly,10 Yearly,25 Yearly\n";
+function downloadCSV(){
+  const siteName=document.getElementById("siteName").value||"Unknown Site";
+  const date=document.getElementById("date").value||"";
+  const smallSiteText = document.getElementById("smallSiteFee").textContent.split(":")[1].trim();
+  
+  const intervalColumns = ["Monthly","6 Monthly","Annual","5 Yearly","10 Yearly","25 Yearly"];
+  let csvContent=`Site Name,${siteName}\nDate,${date}\nSmall Site Fee,${smallSiteText}\n\nAsset,Count,Monthly,6 Monthly,Annual,5 Yearly,10 Yearly,25 Yearly\n`;
 
-  assets.forEach(a => {
-    let row = `"${a.name}",${counts[a.name] || 0}`;
-    const schedules = ["Monthly","6 Monthly","Annual","5 Yearly","10 Yearly","25 Yearly"];
-    schedules.forEach(s => {
-      const val = document.getElementById(`${a.name}_${s}`)?.value || "";
-      let formattedVal = "";
-      if (val) {
-        const [year, month] = val.split("-");
-        const monthName = new Date(year, month-1).toLocaleString('en-US', { month: 'short' });
-        formattedVal = `${monthName}-${year}`;
+  // Add all assets first except Flow Test
+  assets.forEach(asset=>{
+    if(asset.name==="Flow Test") return;
+    const count=counts[asset.name]||0;
+    let intervalData = intervalColumns.map(intv=>{
+      if(asset.intervals.includes(intv)){
+        const val = document.getElementById(`${asset.name}_${intv}`)?.value;
+        if(val){
+          const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+          const y=val.slice(0,4);
+          const m=parseInt(val.slice(5,7),10)-1;
+          return months[m]+"-"+y;
+        }
+        return "";
       }
-      row += `,${formattedVal}`;
+      return "";
     });
-    csv += row + "\n";
+    csvContent+=`${asset.name},${count},${intervalData.join(",")}\n`;
+    // Insert Flow Test right below Hydrants
+    if(asset.name==="Hydrants"){
+      const flowTests=Array.from(document.querySelectorAll('input[name="flowTest"]:checked')).map(el=>el.value);
+      let flowCount=0;
+      let flowText="";
+      const hydrantCount = counts["Hydrants"] || 0;
+      const dieselPump = counts["Diesel Pumpset"] || 0;
+      const electricPump = counts["Electric Pumpset"] || 0;
+      const sprinkler = counts["Sprinkler"] || 0;
+      const totalPumps = dieselPump + electricPump;
+
+      // Flow test logic
+      if(flowTests.includes("Complex") || (sprinkler>0 && totalPumps>0)){
+        flowCount=0;
+        flowText="Requires Review";
+      } else if(hydrantCount>0 || sprinkler>0 || totalPumps>0){
+        flowCount = 0;
+        if(hydrantCount>0) flowCount=1;
+        flowCount += Math.max(0,totalPumps-1); // 1st pump counted with hydrant
+        if(sprinkler>0){
+          if(hydrantCount>0) flowCount+=1;
+          else flowCount=1; // sprinkler alone requires 1
+        }
+        flowText = flowTests.filter(f=>"Complex"!==f).join(" | ");
+      }
+
+      csvContent+=`Flow Test,${flowCount},${flowText}\n`;
+    }
   });
 
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-
-  const siteName = document.getElementById("siteName").value || "Site";
-  const date = document.getElementById("date").value || "Date";
-  const safeSiteName = siteName.replace(/\s+/g, "_");
-  const safeDate = date.replace(/\s+/g, "_").replace(/\//g,"-");
-  link.download = `${safeSiteName}_${safeDate}.csv`;
+  const blob=new Blob([csvContent],{type:'text/csv;charset=utf-8;'});
+  const link=document.createElement("a");
+  link.href=URL.createObjectURL(blob);
+  link.download=`${siteName.replace(/\s+/g,'_')}_AssetTally.csv`;
+  document.body.appendChild(link);
   link.click();
+  document.body.removeChild(link);
 }
 
-// Email CSV
-function emailCSV() {
-  const siteName = document.getElementById("siteName").value || "Site";
-  const date = document.getElementById("date").value || "Date";
-  const safeSiteName = siteName.replace(/\s+/g, "_");
-  const safeDate = date.replace(/\s+/g, "_").replace(/\//g,"-");
-  const subject = encodeURIComponent(`${safeSiteName}_${safeDate}`);
-  window.location.href = `mailto:?subject=${subject}`;
-}
-
-window.onload = () => {
-  const today = new Date();
-  const dd = String(today.getDate()).padStart(2,'0');
-  const mm = String(today.getMonth()+1).padStart(2,'0');
-  const yyyy = today.getFullYear();
-  document.getElementById("date").value = `${dd}/${mm}/${yyyy}`;
+window.onload=()=>{
+  const today=new Date();
+  const dd=String(today.getDate()).padStart(2,'0');
+  const mm=String(today.getMonth()+1).padStart(2,'0');
+  const yyyy=today.getFullYear();
+  document.getElementById("date").value=`${dd}/${mm}/${yyyy}`;
   render();
-}
+};
 </script>
-
 </body>
 </html>
