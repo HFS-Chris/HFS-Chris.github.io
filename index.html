@@ -243,7 +243,7 @@ function downloadCSV() {
 
   assets.forEach(a => {
     let row = `"${a.name}",${counts[a.name] || 0}`;
-    const schedules = ["Monthly","6 Monthly","Annual","5 Yearly","10 Yearly"];
+    const schedules = ["Monthly","6 Monthly","Annual","5 Yearly","10 Yearly","25 Yearly"];
     schedules.forEach(s => {
       const val = document.getElementById(`${a.name}_${s}`)?.value || "";
       let formattedVal = "";
@@ -292,6 +292,7 @@ window.onload = () => {
 
 </body>
 </html>
+
 
 
 
