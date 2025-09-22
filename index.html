@@ -64,6 +64,7 @@
 </div>
 
 <div class="total-count" id="totalCount">Total Count: 0</div>
+<div class="total-count" id="smallSiteFee">Small Site Fee: No</div>
 
 <script>
 const assets = [
@@ -103,7 +104,7 @@ const assets = [
   {name: "Mechanical Fan Testing", intervals:["Annual"]},
   {name: "Co2 Calibration", intervals:["Annual"]},
   {name: "Stairwell Pressurisation", intervals:["Annual"]},
-  {name: "Install Essential Services Cabinet?", intervals:[]},
+  {name: "Install Essential Services Cabinet?", intervals: []},
 ];
 
 let counts = {};
@@ -203,7 +204,7 @@ function render() {
     container.appendChild(item);
   });
 
-  document.getElementById("totalCount").textContent = `Total Count: ${total}`;
+  updateTotal();
 }
 
 function clickOutsideReset(e) {
@@ -215,9 +216,31 @@ function clickOutsideReset(e) {
 }
 
 function updateTotal() {
-    let total = 0;
-    assets.forEach(a => total += counts[a.name]);
-    document.getElementById("totalCount").textContent = `Total Count: ${total}`;
+  let total = 0;
+  assets.forEach(a => total += counts[a.name]);
+  document.getElementById("totalCount").textContent = `Total Count: ${total}`;
+
+  // --- Small Site Fee Logic ---
+  const keys = [
+    "Emergency & Exit Lights",
+    "Extinguishers",
+    "Blankets",
+    "Hydrants",
+    "Fire Hose Reels",
+    "Smoke & Heat Alarms"
+  ];
+
+  let sum = 0;
+  keys.forEach(k => sum += counts[k] || 0);
+
+  const feeBox = document.getElementById("smallSiteFee");
+  if (sum <= 59) {
+    feeBox.textContent = "Small Site Fee: Yes";
+    feeBox.style.color = "red";
+  } else {
+    feeBox.textContent = "Small Site Fee: No";
+    feeBox.style.color = "green";
+  }
 }
 
 // Individual resetAll button with click-outside confirmation
@@ -239,7 +262,8 @@ resetAllBtn.onclick = (e) => {
 function downloadCSV() {
   let csv = `Site Name,${document.getElementById("siteName").value || ""}\n`;
   csv += `Date,${document.getElementById("date").value || ""}\n`;
-  csv += "Asset,Count,Monthly,6 Monthly,Annual,5 Yearly,10 Yearly\n";
+  csv += `Small Site Fee,${document.getElementById("smallSiteFee").textContent.replace("Small Site Fee: ","")}\n`;
+  csv += "Asset,Count,Monthly,6 Monthly,Annual,5 Yearly,10 Yearly,25 Yearly\n";
 
   assets.forEach(a => {
     let row = `"${a.name}",${counts[a.name] || 0}`;
@@ -292,19 +316,3 @@ window.onload = () => {
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
