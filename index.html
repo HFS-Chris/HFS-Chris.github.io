@@ -71,6 +71,7 @@
 
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script>
+// --- All previous assets, counts, toggleState, minutesPerAsset mapping, FIP children etc. ---
 const assets = [
   {
     name: "FIP",
@@ -141,8 +142,8 @@ const minutesPerAsset = {
 const flowTestHTML = `
 <div class="annual-flow">
   <h3>Annual Flow Test</h3>
-  <label><input type="checkbox" name="flowTest" value="Basic Internal"> Basic Internal</label>
-  <label><input type="checkbox" name="flowTest" value="Basic External"> Basic External</label>
+  <label><input type="checkbox" name="flowTest" value="Internal"> Internal</label>
+  <label><input type="checkbox" name="flowTest" value="External"> External</label>
   <label><input type="checkbox" name="flowTest" value="Complex"> Complex*</label>
   <span class="note">
     *Over 10 stories, combined sprinkler/pump system, multiple pressure zones. Needs review by sprinkler fitter prior to emailing quote.
@@ -150,6 +151,7 @@ const flowTestHTML = `
 </div>
 `;
 
+// --- Counts / toggles ---
 let counts = {};
 let toggleState = {};
 let resetConfirm = {};
@@ -339,7 +341,6 @@ function downloadExcel(){
 
   let ws_data=[["Site Name",siteName],["Date",date],["Small Site Fee",smallSiteText],[],["Asset","Count","Monthly","6 Monthly","Annual","5 Yearly","10 Yearly","25 Yearly","Minutes Per Asset"]];
 
-  // --- Add Assets ---
   function processAsset(asset){
     const count=counts[asset.name]||0;
     const intervalColumns=["Monthly","6 Monthly","Annual","5 Yearly","10 Yearly","25 Yearly"];
@@ -357,9 +358,8 @@ function downloadExcel(){
       return "";
     });
 
-    ws_data.push([asset.name,count,...intervalData,""]); // placeholder for Minutes Per Asset in next step
+    ws_data.push([asset.name,count,...intervalData,""]);
 
-    // Children
     if(asset.children){
       asset.children.forEach(child=>{
         const cCount=counts[child.name]||0;
@@ -380,31 +380,43 @@ function downloadExcel(){
     fipTotal+=c*m;
   });
   ws_data.splice(3,0,["FIP Annual Minutes",fipTotal]);
+  ws_data.splice(4,0,[]); // blank space row
 
-  // --- Annual Flow Test Row inserted under Hydrants ---
+  // --- Annual Flow Test Row with internal/external/complex logic ---
   const hydrantRowIndex=ws_data.findIndex(r=>r[0]==="Hydrants")+1;
   const hydrants=counts["Hydrants"]||0;
   const pumps=(counts["Diesel Pumpset"]||0)+(counts["Electric Pumpset"]||0);
   const sprinklers=counts["Sprinkler"]||0;
+
   const flowChecks=Array.from(document.querySelectorAll('input[name="flowTest"]:checked')).map(e=>e.value);
   let flowText="",flowCount=0;
 
-  // Flow Logic
-  if(hydrants>0 && pumps===0 && sprinklers===0) flowCount=1;
-  else if(hydrants>0 && pumps===1 && sprinklers===0) flowCount=1;
-  else if(hydrants>0 && pumps===2 && sprinklers===0) flowCount=2;
-  else if(hydrants>0 && pumps===3 && sprinklers===0) flowCount=3;
-  else if(hydrants>0 && pumps===0 && sprinklers===1) flowCount=2;
-  else if(hydrants>0 && pumps===1 && sprinklers===1) flowText="Requires Review";
-  else if(hydrants>0 && pumps>=2 && sprinklers===1) flowText="Requires Review";
-  else if(hydrants===0 && pumps===1 && sprinklers===0) flowCount=1;
-  else if(hydrants===0 && pumps===2 && sprinklers===0) flowCount=2;
-  else if(hydrants===0 && pumps===0 && sprinklers===1) flowCount=1;
-  else if(hydrants===0 && pumps===1 && sprinklers===1) flowText="Requires Review";
+  if(flowChecks.includes("Complex")){
+    flowText="Requires Review";
+  } else {
+    // Base count logic
+    if(hydrants>0 && pumps===0 && sprinklers===0) flowCount=1;
+    else if(hydrants>0 && pumps===1 && sprinklers===0) flowCount=1;
+    else if(hydrants>0 && pumps===2 && sprinklers===0) flowCount=2;
+    else if(hydrants>0 && pumps===3 && sprinklers===0) flowCount=3;
+    else if(hydrants>0 && pumps===0 && sprinklers===1) flowCount=2;
+    else if(hydrants>0 && pumps===1 && sprinklers===1) flowText="Requires Review";
+    else if(hydrants>0 && pumps>=2 && sprinklers===1) flowText="Requires Review";
+    else if(hydrants===0 && pumps===1 && sprinklers===0) flowCount=1;
+    else if(hydrants===0 && pumps===2 && sprinklers===0) flowCount=2;
+    else if(hydrants===0 && pumps===0 && sprinklers===1) flowCount=1;
+    else if(hydrants===0 && pumps===1 && sprinklers===1) flowText="Requires Review";
 
-  if(flowText!=="Requires Review") flowCount+=flowChecks.filter(v=>v!=="Complex").length;
+    if(flowText!=="Requires Review"){
+      flowCount+=flowChecks.filter(v=>v!=="Internal" && v!=="External" && v!=="Complex").length;
+      // append internal/external wording
+      const addText = flowChecks.filter(v=>"Internal,External".includes(v)).join(", ");
+      if(addText) flowText=flowCount + " ("+addText+")";
+      else flowText=flowCount;
+    }
+  }
 
-  ws_data.splice(hydrantRowIndex,0,["Annual Flow Test",flowText||flowCount]);
+  ws_data.splice(hydrantRowIndex,0,["Annual Flow Test",flowText]);
 
   // --- Create Sheet & Workbook ---
   const ws=XLSX.utils.aoa_to_sheet(ws_data);
@@ -413,7 +425,7 @@ function downloadExcel(){
     {wpx:237},{wpx:95},{wpx:95},{wpx:95},{wpx:95},{wpx:95},{wpx:95},{wpx:95},{wpx:126}
   ];
 
-  // Alignment by column
+  // Alignment
   Object.keys(ws).forEach(r=>{
     if(r[0]!=="!"){
       const cell=ws[r];
